@@ -1,0 +1,114 @@
+PROBLEM STATEMENT : Determine whether string and pattern match by given the pattern ,In this context follow refers to a complete match meaning the non empty word in s and a letter in pattern are bijective Every character will be mapped to the corresponding string .A character can not map to two different strings and a string cannot be mapped with 2 different characters.input : pattern = "abba",s = ''dog cat cat dog" outpu = true pattern = "abba" s ="dog cat cat fish" output = false what is this and how is this done
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_WORD_LENGTH 100
+#define MAX_WORDS 1000
+#define HASH_SIZE 256
+
+// Define boolean values for true and false
+#define true 1
+#define false 0
+typedef int bool;
+
+// Helper function to split a string into words
+int split(char *str, char words[MAX_WORDS][MAX_WORD_LENGTH]) {
+    int i = 0;
+    char *token = strtok(str, " ");
+    while (token != NULL) {
+        strcpy(words[i], token);
+        i++;
+        token = strtok(NULL, " ");
+    }
+    return i;
+}
+
+// Hash function for strings
+unsigned long hash_string(const char *str) {
+    unsigned long hash = 5381;
+    int c;
+    while ((c = *str++))
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    return hash % HASH_SIZE;
+}
+
+// Structure for hash map node
+typedef struct {
+    char key[MAX_WORD_LENGTH];
+    char value[MAX_WORD_LENGTH];
+} HashNode;
+
+// Function to insert into hash map
+void insert(HashNode hash_map[], const char *key, const char *value) {
+    unsigned long hash = hash_string(key);
+    while (hash_map[hash].key[0] != '\0') {
+        if (strcmp(hash_map[hash].key, key) == 0) {
+            strcpy(hash_map[hash].value, value);
+            return;
+        }
+        hash = (hash + 1) % HASH_SIZE;
+    }
+    strcpy(hash_map[hash].key, key);
+    strcpy(hash_map[hash].value, value);
+}
+
+// Function to find in hash map
+char* find(HashNode hash_map[], const char *key) {
+    unsigned long hash = hash_string(key);
+    while (hash_map[hash].key[0] != '\0') {
+        if (strcmp(hash_map[hash].key, key) == 0) {
+            return hash_map[hash].value;
+        }
+        hash = (hash + 1) % HASH_SIZE;
+    }
+    return NULL;
+}
+
+// Function to check if pattern matches string
+bool word_pattern(const char *pattern, const char *s) {
+    char words[MAX_WORDS][MAX_WORD_LENGTH];
+    char s_copy[MAX_WORDS * MAX_WORD_LENGTH];
+    strcpy(s_copy, s);
+    int num_words = split(s_copy, words);
+    
+    int pattern_length = strlen(pattern);
+    if (pattern_length != num_words) {
+        return false;
+    }
+
+    HashNode char_to_word[HASH_SIZE] = { {0} };
+    HashNode word_to_char[HASH_SIZE] = { {0} };
+
+    for (int i = 0; i < pattern_length; i++) {
+        char c[2] = { pattern[i], '\0' };
+        char *word = words[i];
+        
+        char *mapped_word = find(char_to_word, c);
+        char *mapped_char = find(word_to_char, word);
+        
+        if (mapped_word == NULL && mapped_char == NULL) {
+            insert(char_to_word, c, word);
+            insert(word_to_char, word, c);
+        } else if (mapped_word == NULL || mapped_char == NULL) {
+            return false;
+        } else if (strcmp(mapped_word, word) != 0 || mapped_char[0] != c[0]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+    const char *pattern1 = "abba";
+    const char *s1 = "dog cat cat dog";
+    printf("%s\n", word_pattern(pattern1, s1) ? "true" : "false"); // Output: true
+
+    const char *pattern2 = "abba";
+    const char *s2 = "dog cat cat fish";
+    printf("%s\n", word_pattern(pattern2, s2) ? "true" : "false"); // Output: false
+
+    return 0;
+}
+OUTPUT OF THE PROGRAM:true
+                      false
